@@ -1,0 +1,285 @@
+
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+
+<head>
+
+    <link rel="shortcut icon" type="image/x-icon"
+          href=""/>
+    <link rel="stylesheet" href="nicepage.css">
+
+    <script id="vertex-shader-2" type="x-shader/x-vertex">
+const vec4 lightPosition = vec4(0.0, 0.0, 10.0, 1.0);    // in WC
+
+attribute vec4 vPosition;   // vertex position in modelling coordinates
+attribute vec4 vNormal;     // vertex normal in modelling coordinates
+
+uniform mat4 mView;         // view transformation matrix (for points)
+uniform mat4 mModelView;    // model-view transformation (for points)
+uniform mat4 mNormals;      // model-view transformation (for vectors/normals)
+
+uniform mat4 mProjection;   // projection matrix
+
+varying vec3 fNormal;       // normal vector in camera space (to be interpolated)
+varying vec3 fLight;
+varying vec3 fViewer;
+
+void main(){
+    // Compute position in camera frame
+    vec3 posC = (mModelView * vPosition).xyz;
+    
+    // Compute normal in camera frame
+    fNormal = (mNormals * vNormal).xyz;
+
+    // Compute light vector in camera frame
+    if(lightPosition.w == 0.0) 
+        fLight = normalize((mNormals * lightPosition).xyz);
+    else 
+        fLight = normalize((mView*lightPosition).xyz - posC);
+    
+    // Compute the view vector
+    // fViewer = -fPosition; // Perspective projection
+    fViewer = vec3(0,0,1); // Parallel projection only
+
+    // Compute vertex position in clip coordinates (as usual)
+    gl_Position = mProjection * mModelView * vPosition;
+
+    // Make correction for left handed system of clip space
+    //gl_Position.z = -gl_Position.z;
+}
+
+
+
+    </script>
+    <script id="fragment-shader-2" type="x-shader/x-fragment">
+precision mediump float;
+
+varying vec3 fPosition;
+varying vec3 fNormal;
+
+uniform vec3 color;
+const float shininess = 50.0;
+
+const vec3 lightAmb = vec3(0.2, 0.2, 0.2);
+const vec3 lightDif = vec3(0.5, 0.5, 0.5);
+const vec3 lightSpe = vec3(1.0, 1.0, 1.0);
+
+vec3 ambientColor = lightAmb * color;
+vec3 diffuseColor = lightDif * color;
+vec3 specularColor = lightSpe * vec3(1.0, 1.0, 1.0);
+
+varying vec3 fLight;
+varying vec3 fViewer;
+
+void main() {
+
+    vec3 L = normalize(fLight);
+    vec3 V = normalize(fViewer);
+    vec3 N = normalize(fNormal);
+   
+    // Compute the halfway vector for Phong-Blinn model
+    vec3 H = normalize(L+V);
+
+    // Compute diffuse reflection, don't let the vertex be illuminated from behind...
+    float diffuseFactor = max( dot(L,N), 0.0 );
+    vec3 diffuse = diffuseFactor * diffuseColor;
+
+    // Compute specular reflection
+    float specularFactor = pow(max(dot(N,H), 0.0), shininess);
+    vec3 specular = specularFactor * specularColor;
+
+    // Specular reflection should be 0 if normal is pointing away from light source
+    if( dot(L,N) < 0.0 ) {
+        specular = vec3(0.0, 0.0, 0.0);
+    }
+
+    // Add all 3 components from the illumination model (ambient, diffuse and specular)
+    gl_FragColor = vec4(ambientColor + diffuse + specular, 1.0);
+}
+
+
+
+    </script>
+    <script type="text/javascript" src="common/webgl-utils.js"></script>
+    <script type="text/javascript" src="common/initShaders.js"></script>
+    <script type="text/javascript" src="common/MV.js"></script>
+    <script type="text/javascript" src="common/cube.js"></script>
+    <script type="text/javascript" src="common/sphere.js"></script>
+    <script type="text/javascript" src="common/cylinder.js"></script>
+    <script type="text/javascript" src="flying-helicopter.js"></script>
+
+    <style>
+        body {
+            color: #000;
+            font-family: Tahoma;
+            font-size: 13px;
+            font-weight: bold;
+            background-color: rgba(25,84,255,0.76);
+        }
+
+        #container {
+            position: absolute;
+            border-radius: 8px;
+            background-color: #4649ff;
+        }
+
+        #workDescription {
+            background: #4649ff;
+            position: absolute;
+            left: 960px;
+            top: 8px;
+            padding: 0;
+            margin-bottom: 50px;
+            overflow: hidden;
+            width: 800px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        #authorsInfo {
+            background: #4649ff;
+            position: absolute;
+            left: 960px;
+            top: 300px;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+            width: 800px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        #instructions {
+            background: #4649ff;
+            position: absolute;
+            left: 960px;
+            top: 450px;
+            padding-bottom: 15px;
+            margin-bottom: 75px;
+            overflow: hidden;
+            width: 800px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        #settings {
+            background: #4649ff;
+            position: absolute;
+            left: 960px;
+            top: 570px;
+            padding: 0;
+            margin-top: 95px;
+            overflow: hidden;
+            width: 800px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        a {
+            color: ivory;
+        }
+    </style>
+
+</head>
+<body>
+<title>КР Кагальняк 2ПІ-18Б</title>
+
+
+<div class="u-custom-menu u-nav-container">
+    <ul class="u-nav u-unstyled u-nav-1"><li class="u-nav-item"><a class="u-border-2 u-border-grey-75 u-button-style u-nav-link u-radius-38 u-text-active-palette-1-base u-text-hover-palette-2-base u-white" href="Головна.html" style="padding: 10px 20px; text-shadow: 2px 2px 8px rgba(0,0,0,0.4);">Головна</a>
+    </li><li class="u-nav-item"><a class="u-border-2 u-border-grey-75 u-button-style u-nav-link u-radius-38 u-text-active-palette-1-base u-text-hover-palette-2-base u-white" href="Бойовий-Мі-8.html" style="padding: 10px 20px; text-shadow: 2px 2px 8px rgba(0,0,0,0.4);">Бойовий Мі-8</a>
+    </li><li class="u-nav-item"><a class="u-border-2 u-border-grey-75 u-button-style u-nav-link u-radius-38 u-text-active-palette-1-base u-text-hover-palette-2-base u-white" href="Відмінність-від-Мі-24.html" style="padding: 10px 20px; text-shadow: 2px 2px 8px rgba(0,0,0,0.4);">Відмінність від Мі-24</a>
+    </li><li class="u-nav-item"><a class="u-border-2 u-border-grey-75 u-button-style u-nav-link u-radius-38 u-text-active-palette-1-base u-text-hover-palette-2-base u-white" href="flying-helicopter.html" style="padding: 10px 20px; text-shadow: 2px 2px 8px rgba(0,0,0,0.4);">Анімація(міні-гра)</a>
+    </li></ul>
+</div>
+
+
+<div id="container" style="display: inline-block">
+    <canvas id="gl-canvas" width="946" height="946" style="border-radius: 5px;">
+        "Схоже ваш браузер не підтримує HTML5 canvas"
+    </canvas>
+</div>
+
+<br/>
+<br/>
+
+<div id="workDescription">
+    <h3>
+        <a href="https://vntu.edu.ua/">
+            Вінницький національний технічний університет
+        </a>
+    </h3>
+    <h3>
+        <a href="http://initki.vntu.edu.ua/"><i>
+            Факультет інформаційних технологій
+            та комп’ютерної інженерії</i></a>
+    </h3>
+
+
+    <h1>
+        Курсова робота
+    </h1>
+</div>
+
+<div id="authorsInfo">
+    <h2>
+        Розробник
+    </h2>
+    <h2>
+        Кагальняк Руслан Юрійович
+        2ПІ-18Б
+    </h2>
+
+</div>
+
+<div id="instructions">
+    <h2>
+        Керування вертолітом
+    </h2>
+    <font size="4">
+        - Використовуйте клавішу "Стрілка вгору"(↑) для збільшення висоти;
+        <br/>
+        - Використовуйте клавішу "Стрілка вниз"(↓) для зменшення висоти;
+        <br/>
+        - Використовуйте клавішу "Стрілка вліво"(←) для обльоту по колу;
+        <br/>
+        - Використовуйте панель знизу для налаштування точки огляду
+
+        <br/>
+    </font>
+</div>
+
+<div id="settings">
+    <h2>
+        Налаштування точки огляду
+    </h2>
+    <h3>
+        Виберіть за допомогою панелей знизу точку по осі Х для огляду та точку по осі У
+    </h3>
+
+
+    <dt>
+        <i>Точка Х</i>
+    </dt>
+
+    <i>0&#176;</i>
+    <input id="axonometricAngleTheta" type="range" min="0.0" max="360.00" step="1.0" value="68.16"> <i>360&#176;</i>
+
+    <dt>
+        <i>Точка У</i>&nbsp;
+    </dt>
+
+    <i>0&#176;</i>
+    <input id="axonometricAngleGamma" type="range" min="0.0" max="360.00" step="1.0" value="19.42"> <i>360&#176;</i>
+
+    <br/>
+    <br/>
+    <h3>
+        Також керувати точкою огляду можна за допомогою стрілок на нумпаді(клавіші 8,4,2,6 на правій панелі
+            клавіатури)
+    </h3>
+
+</div>
+</body>
+</html>
