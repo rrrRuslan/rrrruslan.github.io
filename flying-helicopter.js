@@ -1,11 +1,3 @@
-// FCT NOVA | FCT-UNL (Faculty of Sciences and Technology of New University of Lisbon)
-// Integrated Master (BSc./MSc.) of Computer Engineering
-
-// Computer Graphics and Interfaces (2017-2018)
-
-// Lab Work 3 - 3D Object Modelling - Flying Helicopter
-
-// Rúben André Barreiro - no. 42648 - r.barreiro@campus.fct.unl.pt
 
 var gl;
 
